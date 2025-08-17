@@ -373,8 +373,8 @@ static void yynoreturn yy_fatal_error ( const char* msg  );
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
-#define YY_NUM_RULES 30
-#define YY_END_OF_BUFFER 31
+#define YY_NUM_RULES 31
+#define YY_END_OF_BUFFER 32
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -384,27 +384,27 @@ struct yy_trans_info
 	};
 static const flex_int16_t yy_accept[198] =
     {   0,
-        0,    0,    0,    0,    0,    0,   31,   29,   27,   28,
-       12,   29,   12,   12,   29,   13,   14,   12,   12,   19,
-       12,   19,   12,   21,   23,   12,   17,   12,   12,   12,
-       26,   15,   16,   12,   26,   26,   26,   26,   26,   26,
-       26,   26,   26,   26,   26,   26,   26,   26,   26,   18,
-       12,   27,   29,    7,    6,    7,    7,   10,    9,   27,
-       11,    0,   25,    0,    0,    0,   22,    3,    8,    0,
-       21,   23,    0,   11,   11,   26,   26,   26,   26,   26,
-       26,   26,    2,   26,   26,   26,   26,   26,   26,    2,
-       26,   26,   26,   26,   26,   26,   26,   26,   26,   26,
+        0,    0,    0,    0,    0,    0,   32,   30,   28,   29,
+       12,   30,   12,   12,   30,   13,   14,   12,   12,   17,
+       12,   20,   12,   22,   24,   12,   18,   12,   12,   12,
+       27,   15,   16,   12,   27,   27,   27,   27,   27,   27,
+       27,   27,   27,   27,   27,   27,   27,   27,   27,   19,
+       12,   28,   30,    7,    6,    7,    7,   10,    9,   28,
+       11,    0,   26,    0,    0,    0,   23,    3,    8,    0,
+       22,   24,    0,   11,   11,   27,   27,   27,   27,   27,
+       27,   27,    2,   27,   27,   27,   27,   27,   27,    2,
+       27,   27,   27,   27,   27,   27,   27,   27,   27,   27,
 
-       26,   27,    0,    0,    1,    5,    4,    0,    0,   24,
-        0,    0,    0,   20,   26,   26,   26,   26,   26,   26,
-       26,   26,   26,   26,   26,   26,   26,   26,   26,   26,
-       26,   26,   26,   26,   26,   26,   26,   26,   26,   26,
-       26,    1,    1,    0,    0,    0,    0,    0,   22,   26,
-       26,   26,   26,   26,   26,   26,   26,   26,   26,   26,
-       26,   26,   26,   26,   26,   26,   26,   26,   26,    0,
-        0,    0,   26,   26,   26,   26,   26,   26,   26,   26,
-       26,   26,   26,   26,   26,   26,   26,   26,   26,   26,
-       26,   26,   26,   26,   26,   26,    0
+       27,   28,    0,    0,    1,    5,    4,    0,    0,   25,
+        0,    0,    0,   21,   27,   27,   27,   27,   27,   27,
+       27,   27,   27,   27,   27,   27,   27,   27,   27,   27,
+       27,   27,   27,   27,   27,   27,   27,   27,   27,   27,
+       27,    1,    1,    0,    0,    0,    0,    0,   23,   27,
+       27,   27,   27,   27,   27,   27,   27,   27,   27,   27,
+       27,   27,   27,   27,   27,   27,   27,   27,   27,    0,
+        0,    0,   27,   27,   27,   27,   27,   27,   27,   27,
+       27,   27,   27,   27,   27,   27,   27,   27,   27,   27,
+       27,   27,   27,   27,   27,   27,    0
 
     } ;
 
@@ -630,10 +630,10 @@ static const flex_int16_t yy_chk[527] =
     } ;
 
 /* Table of booleans, true if rule could match eol. */
-static const flex_int32_t yy_rule_can_match_eol[31] =
+static const flex_int32_t yy_rule_can_match_eol[32] =
     {   0,
 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0,     };
+    0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0,     };
 
 static yy_state_type yy_last_accepting_state;
 static char *yy_last_accepting_cpos;
@@ -660,6 +660,7 @@ char *yytext;
 #define MAX_SYMBOLS 1000
 #define MAX_CONSTANTS 1000
 #define MAX_KEYWORDS 32
+#define MAX_PARAMS 20
 #define SEPARATOR_WIDTH 80
 
 typedef struct {
@@ -671,7 +672,8 @@ typedef struct {
     int dimension_count;    // number of dimensions
     int frequency;
     char return_type[20];   // for functions only
-    int param_count;        // for functions only (count not details)
+    int param_count;        // for functions only
+    char parameters[500];   // function parameters with types
     int line_declared;
 } Symbol;
 
@@ -701,8 +703,15 @@ int paren_depth = 0;
 int bracket_depth = 0;
 char dimension_buffer[50] = "";
 
+// Function parameter tracking
+char param_buffer[500] = "";
+char current_param_type[20] = "";
+char current_param_name[100] = "";
+int param_count = 0;
+int collecting_params = 0;
+
 // Function prototypes
-void add_symbol(char* name, char* type, char* data_type, char* dimensions, char* return_type, int param_count);
+void add_symbol(char* name, char* type, char* data_type, char* dimensions, char* return_type, int param_count, char* parameters);
 void add_constant(char* value, char* type);
 int find_symbol(char* name);
 void print_tables();
@@ -720,6 +729,8 @@ void reset_state();
 void print_header(const char* title);
 void print_separator();
 void print_statistics();
+void add_parameter(char* param_type, char* param_name);
+void finalize_parameters();
 
 // Keywords array for validation
 char* keywords[] = {
@@ -729,9 +740,9 @@ char* keywords[] = {
     "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while"
 };
 
-#line 733 "lex.yy.c"
+#line 744 "lex.yy.c"
 
-#line 735 "lex.yy.c"
+#line 746 "lex.yy.c"
 
 #define INITIAL 0
 #define COMMENT 1
@@ -953,12 +964,12 @@ YY_DECL
 		}
 
 	{
-#line 104 "scanner.l"
+#line 115 "scanner.l"
 
 
-#line 107 "scanner.l"
+#line 118 "scanner.l"
     /* Preprocessor directives */
-#line 962 "lex.yy.c"
+#line 973 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1028,26 +1039,31 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 108 "scanner.l"
+#line 119 "scanner.l"
 { print_token("PREPROCESSOR", yytext); }
 	YY_BREAK
 /* Keywords and data types */
 case 2:
 YY_RULE_SETUP
-#line 111 "scanner.l"
+#line 122 "scanner.l"
 {
     print_token("KEYWORD", yytext);
     if (is_data_type(yytext)) {
-        strncpy(current_data_type, yytext, sizeof(current_data_type) - 1);
-        current_data_type[sizeof(current_data_type) - 1] = '\0';
-        expecting_identifier = 1;
+        if (collecting_params) {
+            strncpy(current_param_type, yytext, sizeof(current_param_type) - 1);
+            current_param_type[sizeof(current_param_type) - 1] = '\0';
+        } else {
+            strncpy(current_data_type, yytext, sizeof(current_data_type) - 1);
+            current_data_type[sizeof(current_data_type) - 1] = '\0';
+            expecting_identifier = 1;
+        }
     }
 }
 	YY_BREAK
 /* Comments */
 case 3:
 YY_RULE_SETUP
-#line 121 "scanner.l"
+#line 137 "scanner.l"
 { 
                     comment_depth = 1; 
                     BEGIN(COMMENT); 
@@ -1056,12 +1072,12 @@ YY_RULE_SETUP
 
 case 4:
 YY_RULE_SETUP
-#line 127 "scanner.l"
+#line 143 "scanner.l"
 { comment_depth++; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 128 "scanner.l"
+#line 144 "scanner.l"
 { 
                     comment_depth--; 
                     if (comment_depth == 0) {
@@ -1072,16 +1088,16 @@ YY_RULE_SETUP
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 134 "scanner.l"
+#line 150 "scanner.l"
 { line_number++; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 135 "scanner.l"
+#line 151 "scanner.l"
 { /* consume comment content */ }
 	YY_BREAK
 case YY_STATE_EOF(COMMENT):
-#line 136 "scanner.l"
+#line 152 "scanner.l"
 { 
                     handle_error("Unterminated multi-line comment"); 
                     BEGIN(INITIAL); 
@@ -1092,26 +1108,26 @@ case YY_STATE_EOF(COMMENT):
 /* Single line comments */
 case 8:
 YY_RULE_SETUP
-#line 144 "scanner.l"
+#line 160 "scanner.l"
 { BEGIN(LINE_COMMENT); }
 	YY_BREAK
 
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 147 "scanner.l"
+#line 163 "scanner.l"
 { line_number++; BEGIN(INITIAL); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 148 "scanner.l"
+#line 164 "scanner.l"
 { /* consume comment content */ }
 	YY_BREAK
 
 /* Multi-character operators */
 case 11:
 YY_RULE_SETUP
-#line 152 "scanner.l"
+#line 168 "scanner.l"
 {
     print_token("OPERATOR", yytext);
 }
@@ -1119,29 +1135,37 @@ YY_RULE_SETUP
 /* Single character operators */
 case 12:
 YY_RULE_SETUP
-#line 157 "scanner.l"
+#line 173 "scanner.l"
 { print_token("OPERATOR", yytext); }
 	YY_BREAK
 /* Punctuation with state management */
 case 13:
 YY_RULE_SETUP
-#line 160 "scanner.l"
+#line 176 "scanner.l"
 {
     print_token("PUNCTUATION", yytext);
     if (expecting_identifier && strlen(current_identifier) > 0) {
         in_function_params = 1;
+        collecting_params = 1;
         paren_depth = 1;
+        param_count = 0;
+        memset(param_buffer, 0, sizeof(param_buffer));
     }
 }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 168 "scanner.l"
+#line 187 "scanner.l"
 {
     print_token("PUNCTUATION", yytext);
     if (in_function_params) {
         paren_depth--;
         if (paren_depth == 0) {
+            // Add final parameter if exists
+            if (strlen(current_param_type) > 0 && strlen(current_param_name) > 0) {
+                add_parameter(current_param_type, current_param_name);
+            }
+            finalize_parameters();
             process_function(current_identifier, current_data_type);
             reset_state();
         }
@@ -1150,7 +1174,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 179 "scanner.l"
+#line 203 "scanner.l"
 {
     print_token("PUNCTUATION", yytext);
     if (expecting_identifier && strlen(current_identifier) > 0) {
@@ -1163,7 +1187,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 189 "scanner.l"
+#line 213 "scanner.l"
 {
     print_token("PUNCTUATION", yytext);
     if (bracket_depth > 0) {
@@ -1176,7 +1200,19 @@ YY_RULE_SETUP
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 199 "scanner.l"
+#line 223 "scanner.l"
+{
+    print_token("PUNCTUATION", yytext);
+    if (collecting_params && strlen(current_param_type) > 0 && strlen(current_param_name) > 0) {
+        add_parameter(current_param_type, current_param_name);
+        memset(current_param_type, 0, sizeof(current_param_type));
+        memset(current_param_name, 0, sizeof(current_param_name));
+    }
+}
+	YY_BREAK
+case 18:
+YY_RULE_SETUP
+#line 232 "scanner.l"
 {
     print_token("PUNCTUATION", yytext);
     if (expecting_identifier && strlen(current_identifier) > 0) {
@@ -1189,20 +1225,20 @@ YY_RULE_SETUP
     reset_state();
 }
 	YY_BREAK
-case 18:
-YY_RULE_SETUP
-#line 211 "scanner.l"
-{ print_token("PUNCTUATION", yytext); }
-	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 212 "scanner.l"
+#line 244 "scanner.l"
+{ print_token("PUNCTUATION", yytext); }
+	YY_BREAK
+case 20:
+YY_RULE_SETUP
+#line 245 "scanner.l"
 { print_token("PUNCTUATION", yytext); }
 	YY_BREAK
 /* Constants */
-case 20:
+case 21:
 YY_RULE_SETUP
-#line 215 "scanner.l"
+#line 248 "scanner.l"
 {
     print_token("HEX_CONSTANT", yytext);
     add_constant(yytext, "hex_integer");
@@ -1211,9 +1247,9 @@ YY_RULE_SETUP
     }
 }
 	YY_BREAK
-case 21:
+case 22:
 YY_RULE_SETUP
-#line 223 "scanner.l"
+#line 256 "scanner.l"
 {
     print_token("OCT_CONSTANT", yytext);
     add_constant(yytext, "oct_integer");
@@ -1222,17 +1258,17 @@ YY_RULE_SETUP
     }
 }
 	YY_BREAK
-case 22:
+case 23:
 YY_RULE_SETUP
-#line 231 "scanner.l"
+#line 264 "scanner.l"
 {
     print_token("FLOAT_CONSTANT", yytext);
     add_constant(yytext, "float");
 }
 	YY_BREAK
-case 23:
+case 24:
 YY_RULE_SETUP
-#line 236 "scanner.l"
+#line 269 "scanner.l"
 {
     print_token("INTEGER_CONSTANT", yytext);
     add_constant(yytext, "integer");
@@ -1241,44 +1277,52 @@ YY_RULE_SETUP
     }
 }
 	YY_BREAK
-case 24:
-/* rule 24 can match eol */
+case 25:
+/* rule 25 can match eol */
 YY_RULE_SETUP
-#line 244 "scanner.l"
+#line 277 "scanner.l"
 {
     print_token("CHAR_CONSTANT", yytext);
     add_constant(yytext, "char");
 }
 	YY_BREAK
-case 25:
-/* rule 25 can match eol */
+case 26:
+/* rule 26 can match eol */
 YY_RULE_SETUP
-#line 249 "scanner.l"
+#line 282 "scanner.l"
 {
     print_token("STRING_CONSTANT", yytext);
     add_constant(yytext, "string");
 }
 	YY_BREAK
 /* Identifiers */
-case 26:
+case 27:
 YY_RULE_SETUP
-#line 255 "scanner.l"
+#line 288 "scanner.l"
 {
     if (is_valid_identifier(yytext)) {
         if (is_keyword(yytext)) {
             print_token("KEYWORD", yytext);
             if (is_data_type(yytext)) {
-                strncpy(current_data_type, yytext, sizeof(current_data_type) - 1);
-                current_data_type[sizeof(current_data_type) - 1] = '\0';
-                expecting_identifier = 1;
+                if (collecting_params) {
+                    strncpy(current_param_type, yytext, sizeof(current_param_type) - 1);
+                    current_param_type[sizeof(current_param_type) - 1] = '\0';
+                } else {
+                    strncpy(current_data_type, yytext, sizeof(current_data_type) - 1);
+                    current_data_type[sizeof(current_data_type) - 1] = '\0';
+                    expecting_identifier = 1;
+                }
             }
         } else {
             print_token("IDENTIFIER", yytext);
-            if (expecting_identifier) {
+            if (collecting_params && strlen(current_param_type) > 0) {
+                strncpy(current_param_name, yytext, sizeof(current_param_name) - 1);
+                current_param_name[sizeof(current_param_name) - 1] = '\0';
+            } else if (expecting_identifier) {
                 strncpy(current_identifier, yytext, sizeof(current_identifier) - 1);
                 current_identifier[sizeof(current_identifier) - 1] = '\0';
             } else if (!in_function_params) {
-                add_symbol(yytext, "identifier", "", "", "", 0);
+                add_symbol(yytext, "identifier", "", "", "", 0, "");
             }
         }
     } else {
@@ -1287,33 +1331,33 @@ YY_RULE_SETUP
 }
 	YY_BREAK
 /* Whitespace and newlines */
-case 27:
+case 28:
 YY_RULE_SETUP
-#line 279 "scanner.l"
+#line 320 "scanner.l"
 { /* ignore whitespace */ }
 	YY_BREAK
-case 28:
-/* rule 28 can match eol */
+case 29:
+/* rule 29 can match eol */
 YY_RULE_SETUP
-#line 280 "scanner.l"
+#line 321 "scanner.l"
 { line_number++; }
 	YY_BREAK
 /* Error handling for invalid characters */
-case 29:
+case 30:
 YY_RULE_SETUP
-#line 283 "scanner.l"
+#line 324 "scanner.l"
 { 
                       char error_msg[150];
                       snprintf(error_msg, sizeof(error_msg), "Invalid character '%c' (ASCII %d)", *yytext, *yytext);
                       handle_error(error_msg);
                     }
 	YY_BREAK
-case 30:
+case 31:
 YY_RULE_SETUP
-#line 289 "scanner.l"
+#line 330 "scanner.l"
 ECHO;
 	YY_BREAK
-#line 1317 "lex.yy.c"
+#line 1361 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(LINE_COMMENT):
 	yyterminate();
@@ -2333,8 +2377,33 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 289 "scanner.l"
+#line 330 "scanner.l"
 
+
+void add_parameter(char* param_type, char* param_name) {
+    if (!param_type || !*param_type || !param_name || !*param_name) return;
+    
+    if (strlen(param_buffer) > 0) {
+        if (strlen(param_buffer) < sizeof(param_buffer) - 3) {
+            strcat(param_buffer, ", ");
+        }
+    }
+    
+    char param_entry[150];
+    snprintf(param_entry, sizeof(param_entry), "%s %s", param_type, param_name);
+    
+    if (strlen(param_buffer) + strlen(param_entry) < sizeof(param_buffer) - 1) {
+        strcat(param_buffer, param_entry);
+        param_count++;
+    }
+}
+
+void finalize_parameters() {
+    if (strlen(param_buffer) == 0) {
+        strcpy(param_buffer, "void");
+        param_count = 0;
+    }
+}
 
 void print_header(const char* title) {
     printf("\n");
@@ -2402,10 +2471,15 @@ void reset_state() {
     memset(current_data_type, 0, sizeof(current_data_type));
     memset(current_identifier, 0, sizeof(current_identifier));
     memset(dimension_buffer, 0, sizeof(dimension_buffer));
+    memset(param_buffer, 0, sizeof(param_buffer));
+    memset(current_param_type, 0, sizeof(current_param_type));
+    memset(current_param_name, 0, sizeof(current_param_name));
     expecting_identifier = 0;
     in_function_params = 0;
+    collecting_params = 0;
     paren_depth = 0;
     bracket_depth = 0;
+    param_count = 0;
 }
 
 int calculate_array_size(char* dimensions, char* data_type) {
@@ -2482,7 +2556,7 @@ int find_symbol(char* name) {
     return -1;
 }
 
-void add_symbol(char* name, char* type, char* data_type, char* dimensions, char* return_type, int param_count) {
+void add_symbol(char* name, char* type, char* data_type, char* dimensions, char* return_type, int param_count, char* parameters) {
     if (!name || !*name || !type) return;
     
     if (symbol_count >= MAX_SYMBOLS) {
@@ -2513,6 +2587,9 @@ void add_symbol(char* name, char* type, char* data_type, char* dimensions, char*
     strncpy(s->return_type, return_type ? return_type : "", sizeof(s->return_type) - 1);
     s->return_type[sizeof(s->return_type) - 1] = '\0';
     
+    strncpy(s->parameters, parameters ? parameters : "", sizeof(s->parameters) - 1);
+    s->parameters[sizeof(s->parameters) - 1] = '\0';
+    
     s->size = 0;
     s->dimension_count = 0;
     if (dimensions && *dimensions) {
@@ -2529,17 +2606,17 @@ void add_symbol(char* name, char* type, char* data_type, char* dimensions, char*
 
 void process_function(char* name, char* return_type) {
     if (!name || !*name) return;
-    add_symbol(name, "function", "", "", return_type, 0);
+    add_symbol(name, "function", "", "", return_type, param_count, param_buffer);
 }
 
 void process_array(char* name, char* data_type, char* dimensions) {
     if (!name || !*name || !data_type || !dimensions) return;
-    add_symbol(name, "array", data_type, dimensions, "", 0);
+    add_symbol(name, "array", data_type, dimensions, "", 0, "");
 }
 
 void process_variable(char* name, char* data_type) {
     if (!name || !*name || !data_type) return;
-    add_symbol(name, "variable", data_type, "", "", 0);
+    add_symbol(name, "variable", data_type, "", "", 0, "");
 }
 
 void add_constant(char* value, char* type) {
@@ -2597,24 +2674,25 @@ void print_tables() {
     }
     printf("└──────┴────────────────────┴──────────────┴──────────────┴────────────┴──────┴──────┴────────┘\n");
     
-    // Functions Section
+    // Functions Section with Parameters
     print_header("FUNCTION DECLARATIONS");
-    printf("┌──────┬───────────────────────────┬─────────────────┐\n");
-    printf("│ Line │ Function Name             │ Return Type     │\n");
-    printf("├──────┼───────────────────────────┼─────────────────┤\n");
+    printf("┌──────┬─────────────────────┬─────────────────┬─────────┬──────────────────────────────────────┐\n");
+    printf("│ Line │ Function Name       │ Return Type     │ Params  │ Parameters (Type Name)               │\n");
+    printf("├──────┼─────────────────────┼─────────────────┼─────────┼──────────────────────────────────────┤\n");
     
     int func_found = 0;
     for (int i = 0; i < symbol_count; i++) {
         if (strcmp(symbols[i].type, "function") == 0) {
-            printf("│ %-4d │ %-25s │ %-15s │\n",
-                   symbols[i].line_declared, symbols[i].name, symbols[i].return_type);
+            printf("│ %-4d │ %-19s │ %-15s │ %-7d │ %-36s │\n",
+                   symbols[i].line_declared, symbols[i].name, symbols[i].return_type,
+                   symbols[i].param_count, symbols[i].parameters);
             func_found = 1;
         }
     }
     if (!func_found) {
-        printf("│      │ No functions found        │                 │\n");
+        printf("│      │ No functions found  │                 │         │                                      │\n");
     }
-    printf("└──────┴───────────────────────────┴─────────────────┘\n");
+    printf("└──────┴─────────────────────┴─────────────────┴─────────┴──────────────────────────────────────┘\n");
     
     // Arrays Section
     print_header("ARRAY DECLARATIONS");
@@ -2683,8 +2761,8 @@ int main(int argc, char** argv) {
     reset_state();
     
     printf("╔═══════════════════════════════════════════════════════════════════════════════╗\n");
-    printf("║                          C LEXICAL ANALYZER v2.0                             ║\n");
-    printf("║                     Enhanced with Better Formatting                          ║\n");
+    printf("║                    C LEXICAL ANALYZER v3.0                                   ║\n");
+    printf("║              Enhanced with Function Parameter Tracking                       ║\n");
     printf("╚═══════════════════════════════════════════════════════════════════════════════╝\n");
     
     if (argc > 1) {

@@ -8,6 +8,7 @@
 #define MAX_SYMBOLS 1000
 #define MAX_CONSTANTS 1000
 #define MAX_KEYWORDS 32
+#define MAX_PARAMS 20
 #define SEPARATOR_WIDTH 80
 
 typedef struct {
@@ -19,7 +20,8 @@ typedef struct {
     int dimension_count;    // number of dimensions
     int frequency;
     char return_type[20];   // for functions only
-    int param_count;        // for functions only (count not details)
+    int param_count;        // for functions only
+    char parameters[500];   // function parameters with types
     int line_declared;
 } Symbol;
 
@@ -49,8 +51,15 @@ int paren_depth = 0;
 int bracket_depth = 0;
 char dimension_buffer[50] = "";
 
+// Function parameter tracking
+char param_buffer[500] = "";
+char current_param_type[20] = "";
+char current_param_name[100] = "";
+int param_count = 0;
+int collecting_params = 0;
+
 // Function prototypes
-void add_symbol(char* name, char* type, char* data_type, char* dimensions, char* return_type, int param_count);
+void add_symbol(char* name, char* type, char* data_type, char* dimensions, char* return_type, int param_count, char* parameters);
 void add_constant(char* value, char* type);
 int find_symbol(char* name);
 void print_tables();
@@ -68,6 +77,8 @@ void reset_state();
 void print_header(const char* title);
 void print_separator();
 void print_statistics();
+void add_parameter(char* param_type, char* param_name);
+void finalize_parameters();
 
 // Keywords array for validation
 char* keywords[] = {
@@ -110,9 +121,14 @@ NEWLINE         \n
 auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for|goto|if|int|long|register|return|short|signed|sizeof|static|struct|switch|typedef|union|unsigned|void|volatile|while {
     print_token("KEYWORD", yytext);
     if (is_data_type(yytext)) {
-        strncpy(current_data_type, yytext, sizeof(current_data_type) - 1);
-        current_data_type[sizeof(current_data_type) - 1] = '\0';
-        expecting_identifier = 1;
+        if (collecting_params) {
+            strncpy(current_param_type, yytext, sizeof(current_param_type) - 1);
+            current_param_type[sizeof(current_param_type) - 1] = '\0';
+        } else {
+            strncpy(current_data_type, yytext, sizeof(current_data_type) - 1);
+            current_data_type[sizeof(current_data_type) - 1] = '\0';
+            expecting_identifier = 1;
+        }
     }
 }
 
@@ -160,7 +176,10 @@ auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for
     print_token("PUNCTUATION", yytext);
     if (expecting_identifier && strlen(current_identifier) > 0) {
         in_function_params = 1;
+        collecting_params = 1;
         paren_depth = 1;
+        param_count = 0;
+        memset(param_buffer, 0, sizeof(param_buffer));
     }
 }
 
@@ -169,6 +188,11 @@ auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for
     if (in_function_params) {
         paren_depth--;
         if (paren_depth == 0) {
+            // Add final parameter if exists
+            if (strlen(current_param_type) > 0 && strlen(current_param_name) > 0) {
+                add_parameter(current_param_type, current_param_name);
+            }
+            finalize_parameters();
             process_function(current_identifier, current_data_type);
             reset_state();
         }
@@ -195,6 +219,15 @@ auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for
     }
 }
 
+"," {
+    print_token("PUNCTUATION", yytext);
+    if (collecting_params && strlen(current_param_type) > 0 && strlen(current_param_name) > 0) {
+        add_parameter(current_param_type, current_param_name);
+        memset(current_param_type, 0, sizeof(current_param_type));
+        memset(current_param_name, 0, sizeof(current_param_name));
+    }
+}
+
 ";" {
     print_token("PUNCTUATION", yytext);
     if (expecting_identifier && strlen(current_identifier) > 0) {
@@ -208,7 +241,7 @@ auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for
 }
 
 "{"|"}"             { print_token("PUNCTUATION", yytext); }
-","|"."             { print_token("PUNCTUATION", yytext); }
+"."                 { print_token("PUNCTUATION", yytext); }
 
     /* Constants */
 {HEX_INTEGER} {
@@ -256,17 +289,25 @@ auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for
         if (is_keyword(yytext)) {
             print_token("KEYWORD", yytext);
             if (is_data_type(yytext)) {
-                strncpy(current_data_type, yytext, sizeof(current_data_type) - 1);
-                current_data_type[sizeof(current_data_type) - 1] = '\0';
-                expecting_identifier = 1;
+                if (collecting_params) {
+                    strncpy(current_param_type, yytext, sizeof(current_param_type) - 1);
+                    current_param_type[sizeof(current_param_type) - 1] = '\0';
+                } else {
+                    strncpy(current_data_type, yytext, sizeof(current_data_type) - 1);
+                    current_data_type[sizeof(current_data_type) - 1] = '\0';
+                    expecting_identifier = 1;
+                }
             }
         } else {
             print_token("IDENTIFIER", yytext);
-            if (expecting_identifier) {
+            if (collecting_params && strlen(current_param_type) > 0) {
+                strncpy(current_param_name, yytext, sizeof(current_param_name) - 1);
+                current_param_name[sizeof(current_param_name) - 1] = '\0';
+            } else if (expecting_identifier) {
                 strncpy(current_identifier, yytext, sizeof(current_identifier) - 1);
                 current_identifier[sizeof(current_identifier) - 1] = '\0';
             } else if (!in_function_params) {
-                add_symbol(yytext, "identifier", "", "", "", 0);
+                add_symbol(yytext, "identifier", "", "", "", 0, "");
             }
         }
     } else {
@@ -286,6 +327,31 @@ auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for
                     }
 
 %%
+
+void add_parameter(char* param_type, char* param_name) {
+    if (!param_type || !*param_type || !param_name || !*param_name) return;
+    
+    if (strlen(param_buffer) > 0) {
+        if (strlen(param_buffer) < sizeof(param_buffer) - 3) {
+            strcat(param_buffer, ", ");
+        }
+    }
+    
+    char param_entry[150];
+    snprintf(param_entry, sizeof(param_entry), "%s %s", param_type, param_name);
+    
+    if (strlen(param_buffer) + strlen(param_entry) < sizeof(param_buffer) - 1) {
+        strcat(param_buffer, param_entry);
+        param_count++;
+    }
+}
+
+void finalize_parameters() {
+    if (strlen(param_buffer) == 0) {
+        strcpy(param_buffer, "void");
+        param_count = 0;
+    }
+}
 
 void print_header(const char* title) {
     printf("\n");
@@ -353,10 +419,15 @@ void reset_state() {
     memset(current_data_type, 0, sizeof(current_data_type));
     memset(current_identifier, 0, sizeof(current_identifier));
     memset(dimension_buffer, 0, sizeof(dimension_buffer));
+    memset(param_buffer, 0, sizeof(param_buffer));
+    memset(current_param_type, 0, sizeof(current_param_type));
+    memset(current_param_name, 0, sizeof(current_param_name));
     expecting_identifier = 0;
     in_function_params = 0;
+    collecting_params = 0;
     paren_depth = 0;
     bracket_depth = 0;
+    param_count = 0;
 }
 
 int calculate_array_size(char* dimensions, char* data_type) {
@@ -433,7 +504,7 @@ int find_symbol(char* name) {
     return -1;
 }
 
-void add_symbol(char* name, char* type, char* data_type, char* dimensions, char* return_type, int param_count) {
+void add_symbol(char* name, char* type, char* data_type, char* dimensions, char* return_type, int param_count, char* parameters) {
     if (!name || !*name || !type) return;
     
     if (symbol_count >= MAX_SYMBOLS) {
@@ -464,6 +535,9 @@ void add_symbol(char* name, char* type, char* data_type, char* dimensions, char*
     strncpy(s->return_type, return_type ? return_type : "", sizeof(s->return_type) - 1);
     s->return_type[sizeof(s->return_type) - 1] = '\0';
     
+    strncpy(s->parameters, parameters ? parameters : "", sizeof(s->parameters) - 1);
+    s->parameters[sizeof(s->parameters) - 1] = '\0';
+    
     s->size = 0;
     s->dimension_count = 0;
     if (dimensions && *dimensions) {
@@ -480,17 +554,17 @@ void add_symbol(char* name, char* type, char* data_type, char* dimensions, char*
 
 void process_function(char* name, char* return_type) {
     if (!name || !*name) return;
-    add_symbol(name, "function", "", "", return_type, 0);
+    add_symbol(name, "function", "", "", return_type, param_count, param_buffer);
 }
 
 void process_array(char* name, char* data_type, char* dimensions) {
     if (!name || !*name || !data_type || !dimensions) return;
-    add_symbol(name, "array", data_type, dimensions, "", 0);
+    add_symbol(name, "array", data_type, dimensions, "", 0, "");
 }
 
 void process_variable(char* name, char* data_type) {
     if (!name || !*name || !data_type) return;
-    add_symbol(name, "variable", data_type, "", "", 0);
+    add_symbol(name, "variable", data_type, "", "", 0, "");
 }
 
 void add_constant(char* value, char* type) {
@@ -548,24 +622,25 @@ void print_tables() {
     }
     printf("└──────┴────────────────────┴──────────────┴──────────────┴────────────┴──────┴──────┴────────┘\n");
     
-    // Functions Section
+    // Functions Section with Parameters
     print_header("FUNCTION DECLARATIONS");
-    printf("┌──────┬───────────────────────────┬─────────────────┐\n");
-    printf("│ Line │ Function Name             │ Return Type     │\n");
-    printf("├──────┼───────────────────────────┼─────────────────┤\n");
+    printf("┌──────┬─────────────────────┬─────────────────┬─────────┬──────────────────────────────────────┐\n");
+    printf("│ Line │ Function Name       │ Return Type     │ Params  │ Parameters (Type Name)               │\n");
+    printf("├──────┼─────────────────────┼─────────────────┼─────────┼──────────────────────────────────────┤\n");
     
     int func_found = 0;
     for (int i = 0; i < symbol_count; i++) {
         if (strcmp(symbols[i].type, "function") == 0) {
-            printf("│ %-4d │ %-25s │ %-15s │\n",
-                   symbols[i].line_declared, symbols[i].name, symbols[i].return_type);
+            printf("│ %-4d │ %-19s │ %-15s │ %-7d │ %-36s │\n",
+                   symbols[i].line_declared, symbols[i].name, symbols[i].return_type,
+                   symbols[i].param_count, symbols[i].parameters);
             func_found = 1;
         }
     }
     if (!func_found) {
-        printf("│      │ No functions found        │                 │\n");
+        printf("│      │ No functions found  │                 │         │                                      │\n");
     }
-    printf("└──────┴───────────────────────────┴─────────────────┘\n");
+    printf("└──────┴─────────────────────┴─────────────────┴─────────┴──────────────────────────────────────┘\n");
     
     // Arrays Section
     print_header("ARRAY DECLARATIONS");
@@ -634,8 +709,8 @@ int main(int argc, char** argv) {
     reset_state();
     
     printf("╔═══════════════════════════════════════════════════════════════════════════════╗\n");
-    printf("║                          C LEXICAL ANALYZER v2.0                             ║\n");
-    printf("║                     Enhanced with Better Formatting                          ║\n");
+    printf("║                    C LEXICAL ANALYZER v3.0                                   ║\n");
+    printf("║              Enhanced with Function Parameter Tracking                       ║\n");
     printf("╚═══════════════════════════════════════════════════════════════════════════════╝\n");
     
     if (argc > 1) {
