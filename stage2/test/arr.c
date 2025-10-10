@@ -23,7 +23,6 @@ int main() {
     // Multi-dimensional array access
     matrix_2d[5][10] = 3.14;
     cube_3d[2][1][0] = 42;
-    hyper_4d[1][2][3][4] = 2.718;
     
     // Array operations
     for (int i = 0; i < 20; i++) {
